@@ -1,0 +1,40 @@
+{"id": "f01", "category": "simple_fact", "prompt": "What is the capital of Australia?", "answers": ["Canberra"], "expect": {"location": "local"}}
+{"id": "f02", "category": "simple_fact", "prompt": "What is the chemical symbol for gold?", "answers": ["Au"], "expect": {"location": "local"}}
+{"id": "f03", "category": "simple_fact", "prompt": "Who wrote Pride and Prejudice?", "answers": ["Jane Austen", "Austen"], "expect": {"location": "local"}}
+{"id": "f04", "category": "simple_fact", "prompt": "What is the largest planet in our solar system?", "answers": ["Jupiter"], "expect": {"location": "local"}}
+{"id": "f05", "category": "simple_fact", "prompt": "What is the square root of 144?", "answers": ["12", "twelve"], "numeric": 12, "expect": {"location": "local"}}
+{"id": "f06", "category": "simple_fact", "prompt": "Who wrote the novel 1984?", "answers": ["George Orwell", "Orwell"], "expect": {"location": "local"}}
+{"id": "f07", "category": "simple_fact", "prompt": "What is the currency of Japan?", "answers": ["yen"], "expect": {"location": "local"}}
+{"id": "f08", "category": "simple_fact", "prompt": "In what year did the Second World War end?", "answers": ["1945"], "numeric": 1945, "expect": {"location": "local"}}
+{"id": "f09", "category": "simple_fact", "prompt": "At what temperature in degrees Celsius does water boil at sea level?", "answers": ["100"], "numeric": 100, "expect": {"location": "local"}}
+{"id": "f10", "category": "simple_fact", "prompt": "Which element has the atomic number 1?", "answers": ["hydrogen"], "expect": {"location": "local"}}
+{"id": "d01", "category": "private_docs", "prompt": "How many days do customers have to request a full refund for a Halden robot arm?", "answers": ["45"], "numeric": 45, "expect": {"retrieve": true}}
+{"id": "d02", "category": "private_docs", "prompt": "What restocking fee does Halden charge on returned hardware that is not faulty?", "answers": ["12%", "12 percent", "12 per cent"], "numeric": 12, "expect": {"retrieve": true}}
+{"id": "d03", "category": "private_docs", "prompt": "How many days of annual leave does a full-time Halden employee get?", "answers": ["27"], "numeric": 27, "expect": {"retrieve": true}}
+{"id": "d04", "category": "private_docs", "prompt": "Who is the primary on-call engineer for the week starting 26 October 2026?", "answers": ["Priya Natarajan", "Priya"], "expect": {"retrieve": true, "search": false}}
+{"id": "d05", "category": "private_docs", "prompt": "How much does the Team plan of Fleet Console cost per month?", "answers": ["149", "£149"], "numeric": 149, "expect": {"retrieve": true}}
+{"id": "d06", "category": "private_docs", "prompt": "What is the maximum payload of the Ardent X2 robot arm?", "answers": ["7.5 kg", "7.5"], "numeric": 7.5, "expect": {"retrieve": true}}
+{"id": "d07", "category": "private_docs", "prompt": "How long did the fleet gateway outage on 12 September 2026 last?", "answers": ["47 minutes", "47"], "numeric": 47, "expect": {"retrieve": true, "search": false}}
+{"id": "d08", "category": "private_docs", "prompt": "What is the daily meal allowance in our travel expenses policy?", "answers": ["£35", "35"], "numeric": 35, "expect": {"retrieve": true}}
+{"id": "d09", "category": "private_docs", "prompt": "What is the internal codename of the Ardent X3?", "answers": ["Nightjar"], "expect": {"retrieve": true}}
+{"id": "d10", "category": "private_docs", "prompt": "What monthly uptime does the Fleet Console Enterprise SLA commit to?", "answers": ["99.95%", "99.95"], "numeric": 99.95, "expect": {"retrieve": true}}
+{"id": "n01", "category": "recent_news", "prompt": "Who was elected Pope in May 2025?", "answers": ["Leo XIV", "Robert Prevost", "Prevost", "Leo 14"], "expect": {"search": true}}
+{"id": "n02", "category": "recent_news", "prompt": "Which club won the 2025 UEFA Champions League final?", "answers": ["Paris Saint-Germain", "PSG", "Paris Saint Germain"], "expect": {"search": true}}
+{"id": "n03", "category": "recent_news", "prompt": "Which team won the 2025 NBA Finals?", "answers": ["Oklahoma City Thunder", "Thunder", "OKC"], "expect": {"search": true}}
+{"id": "n04", "category": "recent_news", "prompt": "Who became Prime Minister of Canada in March 2025?", "answers": ["Mark Carney", "Carney"], "expect": {"search": true}}
+{"id": "n05", "category": "recent_news", "prompt": "Who became Chancellor of Germany in May 2025?", "answers": ["Friedrich Merz", "Merz"], "expect": {"search": true}}
+{"id": "n06", "category": "recent_news", "prompt": "Who was awarded the 2025 Nobel Peace Prize?", "answers": ["María Corina Machado", "Maria Corina Machado", "Machado"], "expect": {"search": true}}
+{"id": "n07", "category": "recent_news", "prompt": "Who became Japan's first female prime minister in October 2025?", "answers": ["Sanae Takaichi", "Takaichi"], "expect": {"search": true}}
+{"id": "n08", "category": "recent_news", "prompt": "Who won South Korea's presidential election in June 2025?", "answers": ["Lee Jae-myung", "Lee Jae Myung", "Lee Jae-Myung"], "expect": {"search": true}}
+{"id": "m01", "category": "multi_step", "prompt": "Pens cost £1.20 each, or £11 for a pack of 12. How much do you save buying 36 pens in packs instead of individually?", "answers": ["10.20", "10.2"], "numeric": 10.2, "expect": {"model": "large"}}
+{"id": "m02", "category": "multi_step", "prompt": "A train travels 180 km in 1.5 hours and then 120 km in 1 hour. What is its average speed in km/h for the whole trip?", "answers": ["120"], "numeric": 120, "expect": {"model": "large"}}
+{"id": "m03", "category": "multi_step", "prompt": "What is the sum of all prime numbers less than 30?", "answers": ["129"], "numeric": 129, "expect": {"model": "large"}}
+{"id": "m04", "category": "multi_step", "prompt": "A rectangle's length is 3 times its width and its perimeter is 64 cm. What is its area in square centimetres?", "answers": ["192"], "numeric": 192, "expect": {"model": "large"}}
+{"id": "m05", "category": "multi_step", "prompt": "Alice is twice as old as Bob. In 6 years the sum of their ages will be 48. How old is Alice now?", "answers": ["24"], "numeric": 24, "expect": {"model": "large"}}
+{"id": "m06", "category": "multi_step", "prompt": "How many minutes are there between 09:45 and 14:20 on the same day?", "answers": ["275"], "numeric": 275, "expect": {"model": "large"}}
+{"id": "p01", "category": "personal_data", "prompt": "My name is Sarah Ahmed and my phone number is 07700 900123. What is 15% of 240?", "answers": ["36"], "numeric": 36, "expect": {"location": "local"}}
+{"id": "p02", "category": "personal_data", "prompt": "My card number is 4111 1111 1111 1111. What is the capital of Canada?", "answers": ["Ottawa"], "expect": {"location": "local"}}
+{"id": "p03", "category": "personal_data", "prompt": "My email is omar.haddad@example.com. How many days are there in a leap year?", "answers": ["366"], "numeric": 366, "expect": {"location": "local"}}
+{"id": "p04", "category": "personal_data", "prompt": "My National Insurance number is QQ 12 34 56 C. What is 12 multiplied by 13?", "answers": ["156"], "numeric": 156, "expect": {"location": "local"}}
+{"id": "p05", "category": "personal_data", "prompt": "My date of birth is 14 March 1998 and I live at 22 Elm Road, Leeds LS6 2AB. How old will I be on 14 March 2027?", "answers": ["29"], "numeric": 29, "expect": {"location": "local"}}
+{"id": "p06", "category": "personal_data", "prompt": "Patient Ahmed Khan, NHS number 943 476 5919, asks: what is normal human body temperature in degrees Celsius?", "answers": ["37"], "numeric": 37, "expect": {"location": "local"}}

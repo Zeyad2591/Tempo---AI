@@ -8,7 +8,13 @@ WORKDIR /app
 
 COPY pyproject.toml README.md ./
 COPY tempo ./tempo
+COPY scripts ./scripts
+COPY data ./data
+COPY db ./db
 RUN pip install .
+
+# Ollama runs on the host; reach it from the container with:
+#   docker run --env-file .env -e OLLAMA_HOST=http://host.docker.internal:11434 ...
 
 EXPOSE 8000
 

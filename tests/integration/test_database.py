@@ -1,12 +1,17 @@
-"""Checks the Postgres stack Tempo relies on: pgvector, pgvectorscale and TimescaleDB.
+"""Tempo's Tiger Data layer against a real Postgres with pgvector, pgvectorscale and TimescaleDB.
 
-CI runs these against the timescaledb-ha image, which ships the same extensions as Tiger Cloud.
-Locally they are skipped unless DATABASE_URL is set.
+CI applies db/schema.sql to a timescaledb-ha service first (same extensions as Tiger Cloud).
+Locally these are skipped unless DATABASE_URL is set.
 """
 
 import os
 
 import pytest
+
+from tempo.core.schemas import Plan, TelemetryRow
+from tempo.telemetry.embeddings import HashEmbedder
+from tempo.telemetry.sink import TigerTelemetry
+from tempo.telemetry.vectors import TigerVectorStore
 
 pytestmark = pytest.mark.integration
 
@@ -14,41 +19,45 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 
 
 @pytest.fixture
-def conn():
+def url() -> str:
     if not DATABASE_URL:
         pytest.skip("DATABASE_URL not set")
-    psycopg = pytest.importorskip("psycopg")
-    with psycopg.connect(DATABASE_URL, autocommit=True) as c:
-        yield c
+    return DATABASE_URL
 
 
-def test_vector_search_with_diskann(conn):
-    conn.execute("CREATE EXTENSION IF NOT EXISTS vectorscale CASCADE")
-    conn.execute("DROP TABLE IF EXISTS ci_documents")
-    conn.execute(
-        "CREATE TABLE ci_documents (id serial PRIMARY KEY, body text, embedding vector(3))"
+async def test_vector_store_round_trip(url):
+    store = TigerVectorStore(url, HashEmbedder(768))
+    await store.clear()
+    await store.add(
+        [
+            ("refund-policy", "Customers can request a full refund within 45 days of delivery."),
+            ("annual-leave", "Every full-time employee gets 27 days of annual leave."),
+        ]
     )
-    conn.execute(
-        "INSERT INTO ci_documents (body, embedding) VALUES "
-        "('refund policy', '[1,0,0]'), ('holiday rota', '[0,1,0]'), ('pricing', '[0,0,1]')"
-    )
-    conn.execute("CREATE INDEX ON ci_documents USING diskann (embedding vector_cosine_ops)")
-    row = conn.execute(
-        "SELECT body FROM ci_documents ORDER BY embedding <=> '[0.9,0.1,0]' LIMIT 1"
-    ).fetchone()
-    assert row[0] == "refund policy"
+    assert await store.count() == 2
+    hits = await store.search("how many days of annual leave does an employee get", k=1)
+    assert hits[0].doc == "annual-leave"
+    assert 0 < hits[0].score <= 1
 
 
-def test_telemetry_hypertable(conn):
-    conn.execute("CREATE EXTENSION IF NOT EXISTS timescaledb")
-    conn.execute("DROP TABLE IF EXISTS ci_telemetry")
-    conn.execute(
-        "CREATE TABLE ci_telemetry (ts timestamptz NOT NULL, prompt_id text, plan jsonb, "
-        "latency_ms int, cost double precision, correct boolean)"
+async def test_telemetry_hypertable_insert(url):
+    import psycopg
+
+    sink = TigerTelemetry(url)
+    await sink.log(
+        TelemetryRow(
+            request_id="ci",
+            prompt_id="f01",
+            plan=Plan(model="local", location="local"),
+            latency_ms=120,
+            cost=0.0,
+            confidence=0.9,
+        )
     )
-    conn.execute("SELECT create_hypertable('ci_telemetry', 'ts')")
-    conn.execute(
-        "INSERT INTO ci_telemetry VALUES (now(), 'p1', '{\"model\": \"local\"}', 120, 0, true)"
-    )
-    n = conn.execute("SELECT count(*) FROM ci_telemetry").fetchone()[0]
-    assert n == 1
+    with psycopg.connect(url) as c:
+        n = c.execute("SELECT count(*) FROM telemetry WHERE request_id = 'ci'").fetchone()[0]
+        hyper = c.execute(
+            "SELECT count(*) FROM timescaledb_information.hypertables "
+            "WHERE hypertable_name = 'telemetry'"
+        ).fetchone()[0]
+    assert n >= 1 and hyper == 1
