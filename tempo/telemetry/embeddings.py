@@ -19,6 +19,8 @@ def normalise(v: list[float]) -> list[float]:
 class HashEmbedder:
     """Deterministic bag-of-words hashing. Offline fallback and for tests."""
 
+    location = "local"
+
     def __init__(self, dim: int = 768):
         self.dim = dim
 
@@ -36,6 +38,8 @@ class HashEmbedder:
 
 
 class OllamaEmbedder:
+    location = "local"
+
     def __init__(self, host: str, model: str = "nomic-embed-text", dim: int = 768):
         self.host = host.rstrip("/")
         self.model = model
@@ -50,7 +54,30 @@ class OllamaEmbedder:
         return [normalise(v[: self.dim]) for v in r.json()["embeddings"]]
 
 
+class OpenRouterEmbedder:
+    location = "cloud"  # queries are redacted before they are embedded
+
+    def __init__(self, api_key: str, model: str = "google/gemini-embedding-001", dim: int = 768):
+        self.api_key = api_key
+        self.model = model
+        self.dim = dim
+        self._http = httpx.AsyncClient(timeout=60.0)
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        r = await self._http.post(
+            "https://openrouter.ai/api/v1/embeddings",
+            json={"model": self.model, "input": texts, "dimensions": self.dim},
+            headers={"Authorization": f"Bearer {self.api_key}"},
+        )
+        r.raise_for_status()
+        rows = sorted(r.json()["data"], key=lambda d: d.get("index", 0))
+        # Truncating keeps the schema's 768 dims if the provider ignores `dimensions`.
+        return [normalise(d["embedding"][: self.dim]) for d in rows]
+
+
 class GeminiEmbedder:
+    location = "cloud"  # queries are redacted before they are embedded
+
     def __init__(self, keys: KeyPool, model: str = "gemini-embedding-001", dim: int = 768):
         self.keys = keys
         self.model = model

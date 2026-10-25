@@ -43,9 +43,13 @@ class Settings:
     gemini_keys: list[str] = field(default_factory=list)
     gemini_light: str = "gemini-2.5-flash-lite"
     gemini_large: str = "gemini-2.5-flash"
+    openrouter_key: str = ""  # set = cloud tiers go through OpenRouter instead of Gemini direct
+    openrouter_light: str = "google/gemini-2.5-flash-lite"
+    openrouter_large: str = "google/gemini-2.5-flash"
+    openrouter_embed: str = "google/gemini-embedding-001"
     ollama_host: str = "http://localhost:11434"
     ollama_model: str = "llama3.2:3b"
-    embed_provider: str = "ollama"  # ollama | gemini | hash
+    embed_provider: str = "gemini"  # gemini | openrouter | ollama | hash
     embed_model: str = "nomic-embed-text"
     embed_dim: int = 768
     tavily_key: str = ""
@@ -54,6 +58,10 @@ class Settings:
     results_dir: Path = Path("results")
     confidence_threshold: float = 0.6
     retrieval_threshold: float = 0.55
+
+    @property
+    def cloud_provider(self) -> str:
+        return "openrouter" if self.openrouter_key else "gemini"
 
     @property
     def models(self) -> list[ModelSpec]:
@@ -68,8 +76,8 @@ class Settings:
             ),
             ModelSpec(
                 name="light",
-                provider="gemini",
-                model_id=self.gemini_light,
+                provider=self.cloud_provider,
+                model_id=self.openrouter_light if self.openrouter_key else self.gemini_light,
                 location="cloud",
                 tier=1,
                 cutoff=date(2025, 1, 1),
@@ -78,8 +86,8 @@ class Settings:
             ),
             ModelSpec(
                 name="large",
-                provider="gemini",
-                model_id=self.gemini_large,
+                provider=self.cloud_provider,
+                model_id=self.openrouter_large if self.openrouter_key else self.gemini_large,
                 location="cloud",
                 tier=2,
                 cutoff=date(2025, 1, 1),
@@ -95,9 +103,13 @@ def load_settings() -> Settings:
         gemini_keys=[k for k in dict.fromkeys(keys) if k],
         gemini_light=_env("GEMINI_LIGHT_MODEL", "gemini-2.5-flash-lite"),
         gemini_large=_env("GEMINI_LARGE_MODEL", "gemini-2.5-flash"),
+        openrouter_key=_env("OPENROUTER_API_KEY"),
+        openrouter_light=_env("OPENROUTER_LIGHT_MODEL", "google/gemini-2.5-flash-lite"),
+        openrouter_large=_env("OPENROUTER_LARGE_MODEL", "google/gemini-2.5-flash"),
+        openrouter_embed=_env("OPENROUTER_EMBED_MODEL", "google/gemini-embedding-001"),
         ollama_host=_env("OLLAMA_HOST", "http://localhost:11434"),
         ollama_model=_env("OLLAMA_MODEL", "llama3.2:3b"),
-        embed_provider=_env("EMBED_PROVIDER", "ollama"),
+        embed_provider=_env("EMBED_PROVIDER", "gemini"),
         embed_model=_env("EMBED_MODEL", "nomic-embed-text"),
         tavily_key=_env("TAVILY_API_KEY"),
         database_url=_env("DATABASE_URL"),

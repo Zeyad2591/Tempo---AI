@@ -14,10 +14,14 @@ from tempo.core.schemas import Request
 
 async def main() -> None:
     s = load_settings()
+    specs = {m.name: m for m in s.models}
+    keys = "OpenRouter key" if s.openrouter_key else f"{len(s.gemini_keys)} Gemini key(s)"
     print(
-        "Gemini keys:", len(s.gemini_keys), "| light:", s.gemini_light, "| large:", s.gemini_large
+        f"Cloud: {s.cloud_provider} ({keys}) | light: {specs['light'].model_id} "
+        f"| large: {specs['large'].model_id}"
     )
-    print("Ollama:", s.ollama_host, s.ollama_model, "| embeddings:", s.embed_provider)
+    ollama = f"{s.ollama_host} {s.ollama_model}" if s.ollama_model else "off (API-only)"
+    print("Ollama:", ollama, "| embeddings:", s.embed_provider)
     print(
         "Tavily search:",
         "yes" if s.tavily_key else "no",

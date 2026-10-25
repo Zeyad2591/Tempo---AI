@@ -22,17 +22,19 @@ SYSTEM = (
 )
 
 
-def build_prompt(req: Request, context: str, s: Signals) -> str:
+def build_prompt(req: Request, context: str, s: Signals, redact: bool = False) -> str:
+    """redact=True strips personal data from the question and history (for cloud models)."""
+    clean = sig.redact if redact else str
     parts: list[str] = []
     if req.history:
-        convo = "\n".join(f"{m.role}: {m.content}" for m in req.history[-6:])
+        convo = "\n".join(f"{m.role}: {clean(m.content)}" for m in req.history[-6:])
         parts.append(f"Conversation so far:\n{convo}")
     if context:
         parts.append(
             "Answer using the context below. If the context does not contain the answer, say so."
             f"\n\nContext:\n{context}"
         )
-    parts.append(f"Question: {req.text}")
+    parts.append(f"Question: {clean(req.text)}")
     if s.math_or_code:
         parts.append("Work it out briefly, then end with one line: 'Final answer: <answer>'.")
     else:
@@ -85,13 +87,13 @@ class Tempo:
 
     async def signals(self, req: Request) -> tuple[Signals, list[Passage]]:
         cutoffs = [self.models[m].cutoff for m in self.available] or [
-            m.cutoff for m in self.models.values()
+            m.cutoff for m in (self.models or {m.name: m for m in self.settings.models}).values()
         ]
         passages: list[Passage] = []
         score = 0.0
         if self.store_ready:
             try:
-                passages = await self.store.search(req.text, k=4)
+                passages = await self.store.search(self._retrieval_query(req.text), k=4)
                 score = passages[0].score if passages else 0.0
             except Exception:
                 passages = []
@@ -151,8 +153,9 @@ class Tempo:
         """Run one forced plan, no routing or escalation. Used by baselines and /run_plan."""
         t0 = time.perf_counter()
         s, passages = await self.signals(req)
+        private = req.private or bool(s.pii)
         att, sources = await self._attempt(
-            req, plan, s, passages, t0 + req.deadline_ms / 1000 + 60, samples=1, private=False
+            req, plan, s, passages, t0 + req.deadline_ms / 1000 + 60, samples=1, private=private
         )
         await self._log(uuid.uuid4().hex[:12], req, system, 1, att, False)
         return Result(
@@ -188,7 +191,7 @@ class Tempo:
             t = time.perf_counter()
             if not passages and self.store is not None:
                 try:
-                    passages = await self.store.search(req.text, k=4)
+                    passages = await self.store.search(self._retrieval_query(req.text), k=4)
                 except Exception as e:
                     notes.append(f"retrieval failed: {e}")
             self.latency.observe("retrieve", (time.perf_counter() - t) * 1000)
@@ -210,10 +213,13 @@ class Tempo:
             self.latency.observe("search", (time.perf_counter() - t) * 1000)
 
         context = "\n\n".join(context_parts)[:7000]
-        prompt = build_prompt(req, context, s)
         client = self.clients.get(plan.model)
         if client is None:
             return self._failed(plan, start, f"model {plan.model} not configured"), sources
+        redact = private and client.spec.location == "cloud"
+        if redact:
+            notes.append("personal data redacted before cloud call")
+        prompt = build_prompt(req, context, s, redact=redact)
 
         temps = [0.2, 0.8][:samples]
         max_tokens = 700 if s.math_or_code else 300
@@ -253,6 +259,11 @@ class Tempo:
             ),
             sources,
         )
+
+    def _retrieval_query(self, text: str) -> str:
+        """A cloud embedder only ever sees the query with personal data removed."""
+        embedder = getattr(self.store, "embedder", None)
+        return sig.redact(text) if getattr(embedder, "location", "local") == "cloud" else text
 
     def _failed(self, plan: Plan, start: float, note: str) -> Attempt:
         ms = int((time.perf_counter() - start) * 1000)

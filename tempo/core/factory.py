@@ -10,8 +10,14 @@ from tempo.core.engine import Tempo
 from tempo.executors.base import ModelClient
 from tempo.executors.gemini import GeminiClient, KeyPool
 from tempo.executors.ollama import OllamaClient
+from tempo.executors.openrouter import OpenRouterClient
 from tempo.executors.search import NoSearch, TavilySearch, WebSearch
-from tempo.telemetry.embeddings import GeminiEmbedder, HashEmbedder, OllamaEmbedder
+from tempo.telemetry.embeddings import (
+    GeminiEmbedder,
+    HashEmbedder,
+    OllamaEmbedder,
+    OpenRouterEmbedder,
+)
 from tempo.telemetry.sink import JsonlTelemetry, TelemetrySink, TigerTelemetry
 from tempo.telemetry.vectors import (
     Embedder,
@@ -26,17 +32,29 @@ log = logging.getLogger("tempo")
 
 def build_clients(s: Settings) -> dict[str, ModelClient]:
     specs = {m.name: m for m in s.models}
-    clients: dict[str, ModelClient] = {"local": OllamaClient(specs["local"], s.ollama_host)}
-    if s.gemini_keys:
+    clients: dict[str, ModelClient] = {}
+    if s.ollama_model:  # blank OLLAMA_MODEL = API-only, never contact Ollama
+        clients["local"] = OllamaClient(specs["local"], s.ollama_host)
+    raw = os.environ.get("LARGE_THINKING_BUDGET", "512").strip().lower()
+    large_budget = None if raw in ("", "none") else int(raw)
+    if s.openrouter_key:  # OpenRouter wins when set; see Settings.cloud_provider
+        key = s.openrouter_key
+        clients["light"] = OpenRouterClient(specs["light"], key, thinking_budget=0)
+        clients["large"] = OpenRouterClient(specs["large"], key, thinking_budget=large_budget)
+    elif s.gemini_keys:
         pool = KeyPool(s.gemini_keys)
-        raw = os.environ.get("LARGE_THINKING_BUDGET", "512").strip().lower()
-        large_budget = None if raw in ("", "none") else int(raw)
         clients["light"] = GeminiClient(specs["light"], pool, thinking_budget=0)
         clients["large"] = GeminiClient(specs["large"], pool, thinking_budget=large_budget)
     return clients
 
 
 def build_embedder(s: Settings) -> Embedder:
+    # "gemini" with only an OpenRouter key: the same Gemini embedding model, via OpenRouter.
+    wants_openrouter = s.embed_provider == "openrouter" or (
+        s.embed_provider == "gemini" and not s.gemini_keys
+    )
+    if wants_openrouter and s.openrouter_key:
+        return OpenRouterEmbedder(s.openrouter_key, s.openrouter_embed, dim=s.embed_dim)
     if s.embed_provider == "gemini" and s.gemini_keys:
         return GeminiEmbedder(KeyPool(s.gemini_keys), dim=s.embed_dim)
     if s.embed_provider == "ollama":

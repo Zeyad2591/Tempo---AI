@@ -14,6 +14,7 @@ from typing import Protocol
 
 class Embedder(Protocol):
     dim: int
+    location: str  # "local" | "cloud"
 
     async def embed(self, texts: list[str]) -> list[list[float]]: ...
 

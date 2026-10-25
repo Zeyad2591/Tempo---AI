@@ -72,9 +72,15 @@ class RulesPlanner:
                 model = "local"
                 what = ", ".join(s.pii) if s.pii else "caller marked request private"
                 why.append(f"local model: personal data detected ({what}), cloud not allowed")
+            elif cloud:
+                model = cloud[0]
+                why.append(
+                    f"{model} cloud model: personal data detected but no local model, "
+                    "so it is redacted before the call"
+                )
             else:
-                model = cloud[0] if cloud else "local"
-                why.append("WARNING: personal data but no local model available")
+                model = "local"
+                why.append("no model reachable: add OPENROUTER_API_KEY or a Gemini key to .env")
         # 4. hard -> large
         elif s.difficulty >= 0.5 and "large" in available:
             model = "large"
@@ -163,7 +169,7 @@ class RulesPlanner:
         if "large" in available:
             why.append("large model: only model available")
             return "large"
-        why.append("no model reachable: start Ollama or add a Gemini key to .env")
+        why.append("no model reachable: add OPENROUTER_API_KEY or a Gemini key to .env")
         return "local"
 
 
